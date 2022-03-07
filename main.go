@@ -1,15 +1,18 @@
 package main
 
 import (
+	"fmt"
 	database "go-fiber-app/database"
 	"go-fiber-app/routes"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"gorm.io/gorm"
 )
 
-func setupRoutes(app *fiber.App) {
+func setupRoutes(app *fiber.App, db *gorm.DB) {
 
 	// moved from main method
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -30,23 +33,30 @@ func setupRoutes(app *fiber.App) {
 		})
 	})
 
-	routes.IndexRoute(api.Group("/v1"))
+	v1 := api.Group("/v1")
+
+	routes.IndexRoute(v1, db)
 
 }
 
 func main() {
 	app := fiber.New()
 	app.Use(logger.New())
-	database.ConnectDB()
+	DB := database.ConnectDB()
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "https://gofiber.io, https://gofiber.net",
+		AllowOrigins:     "http://localhost:3000",
 		AllowHeaders:     "Origin, Content-Type, Option, Authorization, X-Session-Id",
 		AllowCredentials: true,
 	}))
 
-	setupRoutes(app)
+	setupRoutes(app, DB)
 
-	err := app.Listen("127.0.0.1:8080")
+	PORT := os.Getenv("PORT")
+	port := fmt.Sprintf("127.0.0.1:%v", PORT)
+
+	fmt.Println("Server Running on Port", port)
+
+	err := app.Listen(port)
 
 	if err != nil {
 		panic(err)
